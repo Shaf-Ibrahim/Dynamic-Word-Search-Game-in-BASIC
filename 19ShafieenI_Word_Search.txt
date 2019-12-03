@@ -1,0 +1,389 @@
+1000 rem Data statements for default input set.
+1004 data "apple"
+1005 data "peel"
+1010 data "leap
+1015 data "family"
+1020 data "chicken"
+1025 data "oh"
+1030 data "deed"
+1035 data "pie"
+1040 data "restart"
+1045 data "flamingo
+1050 data "ill"
+1055 data "seven"
+1060 data "stop"
+1061 data "not"
+1062 data "..."
+1063 for i = 0 to 1000 step 1
+1064 read a$
+1065 if a$ = "..." then i = 1000 : goto 1080
+1070 if a$ <> "..." then ln = ln + 1
+1075 next i
+1080 dim wd$(ln) : dim rj$(ln)
+1085 restore
+1090 for i = 0 to ln-1 step 1
+1091 read a$
+1092 if a$ = "..." then i = 2000 : return
+1093 if a$ <> "..." then wd$(i) = a$
+1094 next i
+1095 return
+
+1 rem Shafieen Ibrahim 3/2/17
+2 rem This BASIC program takes in a word list from the user.
+3 rem A default set is included as well. The word list is arranged into
+4 rem a word search game in which words are randomly placed horizontally
+5 rem or vertically. Overlaps between words are prioritized. The program
+6 rem then prints out the key, word search, and reject list.
+7 rem Known bugs: Reject list will feature a few words it shouldn't sometimes,
+8 rem however it rarely happens. EDIT: This doesn't occur anymore, but was
+9 rem present in the first submission.
+10 input "Enter a period if you would like to use the default."; a$
+15 if a$ <> "." then gosub 900 : rem user prompted for inputting words
+20 if a$ = "." then gosub 1000 : rem use default set
+25 gosub 1100 : rem determine length of longest word
+30 gosub 300 : rem create grid
+35 print "Here is your word list: "
+40 gosub 4000
+55 for z = 0 to ln-1 step 1
+60 a$ = wd$(ct%) : gosub 1200 : rem determines locations for word
+61 if wd$(ct%) = "" then goto 65
+62 ? "Current status" : ? ct% : ? " words have been placed."
+65 if oh$(0) = "" then goto 75 : rem no overlaps possible, place word randomly
+70 if oh$(0) <> "" then goto 80 : rem choose a possible overlap for the word
+71 rem use random integer subroutine to choose random possible location
+75 mn = 0 : mx = cn - 1 : gosub 2030 : gosub 1700 : goto 85
+80 mn = 0 : mx = oc - 1 : gosub 2030 : gosub 2450
+85 gosub 1800 : rem clear all variables, get ready for next word
+90 next z
+95 ?"Done!" : gosub 3200 : gosub 1760 : rem print key
+96 input "Press a key to see the word list.";zz$
+97 lt = 1 : gosub 4000 : rem prints it out in same line
+105 input "Press a key to see the word search.";zz$
+106 gosub 3250 : gosub 1760 : rem print word search 
+107 input "Press a key to see the reject list.";zz$
+108 gosub 3600
+109 rem Prevents key, word search, and reject list from flying off screen.
+110 end
+
+4000 rem Prints out word list.
+4001 y$ = "" : for y = 0 to ln-1 step 1
+4002 y$ = y$ + " " + wd$(y)
+4004 if lt = 0 then print wd$(y)
+4007 next y
+4008 if lt = 0 then return
+4009 print y$ : return
+
+500 rem Based off how many words user wanted, user inputs words.
+509 for i = 0 to ln-1 step 1
+510 input t$
+520 if t$ = "..." then i = 1000 : goto 550 : rem if user wants to stop
+530 wd$(i) = t$
+540 next i
+550 return
+
+900 rem Prompts user for maximum size of their word list.
+904 input "What is the maximum number of words you want";ln$
+905 ln = val(ln$)
+915 dim wd$(ln) : dim rj$(ln) : rem initializes word and reject list
+920 ? "Please input the words for your word search."
+925 ? "Type " + chr$(34) + + "..." + chr$(34) + "if you are done.""
+930 ? "Words (enter ... to stop): "
+935 gosub 500 : rem user inputs words
+940 return
+
+1100 rem Determines dimensions for the grid.
+1101 rem # of rows is length of longest word, # of cols is size of word list
+1104 for i = 0 to ln-1 step 1
+1105 if x% < len(wd$(i)) then x% = len(wd$(i))
+1110 next i
+1115 y% = ln
+1120 return
+
+300 rem Initializes the needed arrays. Dimension the grid as mentioned earlier.
+301 rem Make arrays needed for possible locations for word.
+302 rem Possible locations array: stores possible locations for a word
+303 rem by storing row # in an even index and col # in the following odd index.
+304 rem i.e.: sp(0) = 2 sp(1) = 3, this represents row 2 col 3.
+305 rem Same type of array is also used for overlaps. String arrays are also
+306 rem used to store orientation (horz/vert) of word. 2 indices will 
+307 rem of this array represent one word.
+308 dim gd$(x%, y%) : d = x% * y% * 5
+310 dim sp(d) : dim ov(d) : rem possible locations arrays
+315 dim hv$(d) : dim oh$(d): rem horizontal/vertical arrays
+320 cn = 0 : oc = 0 : rem counter for vertical array
+330 return
+
+
+1200 rem Loops through each space of the grid. If that space is occupied, check
+1201 rem for possible overlap. Otherwise, determine if this location can be the
+1202 rem starting location for a possible placement of the word.
+1204 l% = len(a$) : rem get length of current word (a$)
+1205 for r = 0 to x% step 1
+1210 for c = 0 to y% step 1
+
+
+1215 l% = len(a$) : if gd$(r,c) <> "" then gosub 2100 : rem check overlaps
+1220 if gd$(r,c) = "" then gosub 1400 : rem check horz placement
+1225 gosub 1300 : rem check vertical placement
+1230 next c
+1235 next r
+1240 if oh$(0) <> "" then goto 1245
+1241 rem If overlap and possible locations arrays empty, add to reject list.
+1242 if hv$(0) = "" then gosub 3800
+1245 return
+
+
+2100 rem Check for overlaps. Determines which squares around current square
+2101 rem are available, such as upper square, lower square, left square, 
+2102 rem and right square.
+2104 l$ = gd$(r, c):
+2105 for i = 1 to l% step 1
+2107 rem Checks current word has the same letter as the one in current square.
+2110 if mid$(a$, i, 1) = l$ then in = i-1 : rf = r : cf = c : gosub 2150 
+2115 next i
+2120 return
+
+2150 rem Checks lower square, upper square, left square, and right square.
+2155 if c=y% then rg = 1 : goto 2170 : rem right squares out of bounds
+2160 if gd$(r,c+1) <> "" then rg=1 : rem right square has letter
+2170 if c=0 then lf = 1 : goto 2190 : rem left squares out of bounds
+2180 if gd$(r,c-1) <> "" then lf=1 : rem left square has letter
+
+2190 if r=x% then dn = 1 : goto 2210 : rem lower squares out of bounds
+2200 if gd$(r+1,c) <> "" then dn=1 : rem lower square has letter
+2210 if r=0 then up = 1 : goto 2250: rem upper squares out of bounds
+2220 if gd$(r-1,c) <> "" then up=1 : rem upper square has letter
+
+2250 if up = 0 and dn = 0 then gosub 2700
+2255 if up = 0 and dn = 1 then gosub 2770
+2260 if up = 1 and dn = 0 then gosub 2840
+2265 if lf = 0 and rg = 0 then gosub 2910
+2270 if lf = 0 and rg = 1 then gosub 2980
+2275 if lf = 1 and rg = 0 then gosub 3050
+2280 return
+
+
+2700 rf = rf - in : rc = rf : rem save starting location
+2701 rem Go left however many squares needed, then determine
+2702 rem if word can fit starting from that location.
+2705 if rf<0 then goto 2730
+2710 for rf = rf to rf+l% step 1 : rem loop 
+2715 if rf>x% then goto 2730
+2720 if rf = r and gd$(rf, c) = gd$(r, c) then goto 2735
+2721 rem Checks if current square's letter matches
+2725 if gd$(rf, c) = "" goto 2735
+2726 if len(a$)>l% then if gd$(rf,c)=mid$(a$,len(a$)-l%,1) then goto 2735
+2730 rf = 1000 : return
+2735 l% = l% - 1
+2740 next rf
+2745 if l% <= 0 then goto 2760 rem add to array
+2750 return
+2760 tm = r : r = rc : gosub 2420 : r = tm :goto 2750
+
+
+2770 if gd$(r, c) <> mid$(a$, len(a$), 1) then return
+2771 rem If current letter isn't the last letter of word, then can't overlap.
+2775 rf = rf - in : rc = rf : rem save starting location 
+2780 if rf<0 then goto 2800
+2785 for rf=rf to r step 1
+2790 if rf = r and gd$(rf, c) = gd$(r, c) then goto 2805
+2795 if gd$(rf, c) = "" then goto 2805
+2796 if len(a$)>l% then if gd$(rf,c)=mid$(a$,len(a$)-l%,1) then goto 2805
+2800 rf = 1000 : return
+2805 l% = l% - 1
+2810 next rf
+2815 if l% <= 0 then goto 2830 : rem add to array
+2820 return
+2830 tm = r : r = rc : gosub 2420 : r = tm :goto 2820
+
+
+2840 if gd$(r, c) <> mid$(a$, 1, 1) then return
+2841 rem If current letter isn't the first letter of word, then can't overlap.
+2842 rem it can't overlap.
+2845 if rf=x% then goto 2870
+2850 for rf = rf to rf+l% step 1
+2855 if rf>x% then goto 2870
+2860 if rf = r and gd$(rf, c) = gd$(r, c) then goto 2875
+2865 if gd$(rf, c) = "" then goto 2875
+2866 if len(a$)>l% then if gd$(rf,c)=mid$(a$,len(a$)-l%,1)then goto 2875
+2870 rf = 1000 : return
+2875 l% = l% - 1
+2880 next rf
+2890 if l% <= 0 then gosub 2420 : rem add to array
+2895 return
+
+
+2910 cf = cf - in : sc = cf : rem save starting location
+2915 if cf<0 then goto 2940
+2916 rem Go up however many squares needed, then determine
+2917 rem if word can fit starting from that location.
+2920 for cf = cf to cf+l% step 1
+2925 if cf>y% then goto 2940
+2930 if cf = c and gd$(r, cf) = gd$(r, c) then goto 2945
+2935 if gd$(r, cf) = "" then goto 2945
+2936 if len(a$)>l% then if gd$(r,cf)=mid$(a$,len(a$)-l%,1) then goto 2945
+2940 cf = 1000 : return
+2945 l% = l% - 1
+2950 next cf
+2955 if l% <= 0 then goto 2970
+2960 return
+2970 tm = c : c = sc : gosub 2400 : c = tm : goto 2960
+
+
+2980 if gd$(r, c) <> mid$(a$, len(a$), 1) then return
+2981 rem Word must end on 
+2985 cf = cf - in : sc = cf : rem save starting location
+2990 if cf<0 then cf = 1000 : return
+2995 for cf = cf to c step 1
+3000 if cf = c and gd$(r,cf)=gd$(r,c) then goto 3015
+3005 if gd$(r, cf) = "" then goto 3015
+3006 if len(a$)>l% then if gd$(r,cf)=mid$(a$,len(a$)-l%,1) then goto 3015
+3015 l% = l% - 1
+3020 next cf
+3025 if l% <= 0 then goto 3040
+3030 return
+3040 tm = c : c = sc : gosub 2400 : c = tm : goto 3030
+
+
+3050 if gd$(r, c) <> mid$(a$, 1, 1) then return
+3055 if cf=y% then goto 3075
+3056 rem If current letter isn't the first letter of word, then can't overlap.
+3060 for cf = cf to cf+l% step 1
+3061 if cf>y% then goto 3075
+3065 if cf = c and gd$(r, cf) = gd$(r, c) then goto 3080
+3070 if gd$(r, cf) = "" then goto 3080
+3071 if len(a$)>l% then if gd$(r, cf)=mid$(a$,len(a$)-l%,1) then goto 3080
+3075 return
+3080 l% = l% - 1
+3085 next cf
+3095 if l% <= 0 then f$ = "t" : gosub 2400
+3100 return
+
+2400 rem Counter for overlap. Store row in even index, column in odd.
+2401 rem Store orientation (h/v) in both indices.
+2413 ov(oc) = r : oh$(oc) = "h"
+2414 oc = oc + 1 : ov(oc) = c : oh$(oc) = "h" : oc = oc + 1
+2415 return
+2420 ov(oc) = r : oh$(oc) = "v"
+2421 oc = oc + 1 : ov(oc) = c : oh$(oc) = "v" : oc = oc + 1
+2430 return
+
+
+3800 rj$(r%) = a$ : r% = r% + 1 : rem reject list
+3805 return
+
+1400 rem horizontal placement check
+1401 for k = c to y%-1 step 1
+1402 if l% = 0 then k = 1000 : goto 1409
+1403 if gd$(r, k) = "" then goto 1405 : rem square must be empty
+1404 if gd$(r, k) <> "" then k = 1000 : goto 1408
+1405 l% = l% - 1
+1406 next k
+1407 if l% = 0 then goto 1409
+1408 l% = len(a$) : return
+1409 l% = len(a$) : f$ = "t" : gosub 1500 : return
+
+1300 rem vertical placement check
+1301 for k = r to x% step 1
+1302 if l% = 0 then k = 1000 : goto 1309
+1303 if gd$(k, c) = "" then goto 1305 : rem square must be empty
+1304 if gd$(k, c) <> "" then k = 1000 : goto 1308
+1305 l% = l% - 1
+1306 next k
+1307 if l% = 0 then goto 1309
+1308 l% = len(a$) : return
+1309 l% = len(a$) : f$ = "t" : gosub 1520 : return
+
+1500 rem Counter for possible locations. Store row in even index, 
+1501 rem column in odd. Store orientation (h/v) in both indices.
+1513 sp(cn) = r : hv$(cn) = "h"
+1514 cn = cn + 1 : sp(cn) = c : hv$(cn) = "h" : cn = cn + 1
+1515 return
+1520 sp(cn) = r : hv$(cn) = "v"
+1525 cn = cn + 1 : sp(cn) = c : hv$(cn) = "v" : cn = cn + 1
+1530 return
+
+2000 rem Random Number Generator (reals, exclusive)
+2010 rt = rnd(0) * (mx - mn) + mn : rem generate exclusive random value
+2020 return
+
+2030 rem Random Number Generator (integer, inclusive)
+2040 mx = mx + 1 : rem increase max to make it inclusive
+2050 gosub 2000
+2060 mx = mx - 1 : rem decrease max because it was increased above
+2070 rt = int(rt) : rem generating random integer value
+2080 return
+
+1760 for r = 0 to x% step 1
+1765 print t$ : t$ = "" : for c = 0 to y% step 1
+1770 t$ = t$ + gd$(r, c)
+1775 if gd$(r,c) = "" then t$ = t$ + " "
+1780 next c : next r
+1785 print t$: return
+
+
+1700 rem Determine which array index is row and column.
+1701 if int(rt/2) < (rt/2) then c = sp(rt) : r = sp(rt - 1) : goto 1703
+1702 r = sp(rt) : c = sp(rt + 1) : rem rows stored at even, col at odd
+1703 if hv$(rt)= "v" then goto 1726 : rem place word (find if h/v)
+1704 k = c : i = 1
+1705 if l% <> 0 then
+1710 gd$(r, k) = mid$(wd$(ct%), i, 1)
+1715 k = k + 1 : i = i + 1 : l% = l% - 1
+1720 if l% > 0 then goto 1710
+1725 goto 1750
+1726 k = r : i = 1
+1730 if l% <> 0 then
+1735 gd$(k, c) = mid$(wd$(ct%), i, 1)
+1740 k = k + 1 : i = i + 1 : l% = l% - 1
+1745 if l% > 0 then goto 1730
+1750 return
+
+1800 rem Refreshes variable. Advances counter for word in word list.
+1804 ct% = ct% + 1 : a$ = wd$(ct%) : cn = 0 : oc = 0
+1805 for i = 0 to d step 1
+1810 sp(i) = 0 : hv$(i) = ""
+1811 ov(i) = 0 : oh$(i) = ""
+1815 next i 
+1820 return
+
+
+2450 rem Determine which array index is row and column
+2451 rem Possible overlap locations. Place word based off its overlap.
+2455 if int(rt/2) < (rt/2) then c = ov(rt) : r = ov(rt - 1) : goto 2510
+2505 r = ov(rt) : c = ov(rt + 1) 
+2510 if oh$(rt)= "v" then goto 2545
+2515 k = c : i = 1
+2520 if l% <> 0 then
+2525 gd$(r, k) = mid$(wd$(ct%), i, 1)
+2530 k = k + 1 : i = i + 1 : l% = l% - 1
+2535 if l% > 0 then goto 2525
+2540 goto 2570
+2545 k = r : i = 1
+2550 if l% <> 0 then
+2555 gd$(k, c) = mid$(wd$(ct%), i, 1)
+2560 k = k + 1 : i = i + 1 : l% = l% - 1
+2565 if l% > 0 then goto 2550
+2570 return
+
+3200 rem Prints out the key.
+3201 for i = 0 to x% step 1
+3205 for j = 0 to y% step 1
+3210 if gd$(i,j) = "" then gd$(i,j) = "."
+3215 next j : next i
+3220 return
+
+3250 rem Prints out word search.
+3251 for i = 0 to x% step 1
+3252 for j = 0 to y% step 1
+3253 if gd$(i,j) <> "." then goto 3255
+3254 mn = 65 : mx = 90 : gosub 2030 : gd$(i,j) = chr$(rt)
+3255 next j : next i
+3256 return
+
+3600 rem Prints out reject list. Typically there isn't one.
+3601 for i = 0 to ln-1 step 1
+3602 if rj$(i) <> "" then ? rj$(i) : goto 3604
+3603 i = 1000 : return
+3604 next i
+3605 return
